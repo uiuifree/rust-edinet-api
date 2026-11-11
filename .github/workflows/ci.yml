@@ -8,6 +8,8 @@ on:
     # 毎週月曜 03:00 UTC。API のレスポンス形式の変化に気づくため
     - cron: "0 3 * * 1"
   workflow_dispatch:
+  # release.yml から呼ぶ
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
