@@ -4,6 +4,8 @@
 
 Crate name: `edinet-api` (import as `edinet_api`). MSRV 1.88, Tokio, reqwest.
 
+Use it for: listing Japanese corporate disclosures by date, getting XBRL or CSV financial statements of listed companies, downloading 有価証券報告書 (annual securities reports), 半期報告書, 臨時報告書 or 大量保有報告書, and watching for new filings. Japanese terms: 書類一覧 API = `documents`/`metadata`, 書類取得 API = `download`, 書類管理番号 = `doc_id`, 書類種別コード = `DocTypeCode`, 府令コード = `OrdinanceCode`, 証券コード = `sec_code`, 提出者 = filer.
+
 Public items:
 
 - `EdinetApi::{with_api_key, with_client, with_timeout, with_base_url}`; `metadata(Date) -> Result<Metadata, EdinetError>`; `documents(Date) -> Result<DocumentList, EdinetError>`; `download(&str, DocumentKind) -> Result<Download, EdinetError>`
@@ -16,6 +18,12 @@ Public items:
 - `EdinetError::{Connection, JsonParse, Api { status, message }, HttpStatus(u16, String), UnexpectedContentType(String), InvalidArgument(String)}` with `status()`, `is_not_found()`, `is_unauthorized()`, `is_rate_limited()`, `is_timeout()`
 
 CLI (feature `cli`, `cargo install edinet-api --features cli`): `edinet metadata DATE`, `edinet list DATE [--doc-type CODE]... [--edinet-code CODE]... [--sec-code CODE]... [--after-seq N] [--ndjson]`, `edinet download DOC_ID [--kind main|pdf|attachment|english|csv] [-o PATH] [--force]`, `edinet codes`. Key from `EDINET_API_KEY`. JSON on stdout (`{ok, command, params, rows|data, meta}`), errors as JSON on stderr; exit codes 2 usage, 3 auth, 4 api, 5 rate limit, 6 not found, 1 other.
+
+Common tasks:
+
+- New filings today: call `metadata(date)` to see whether `resultset.count` grew, then `documents(date)` and keep entries with `seq_number` above the last one seen (CLI: `edinet list DATE --after-seq N`, next N is `meta.last_seq`).
+- One company's reports: there is no company search. Loop over dates with `documents(date)`, filter by `sec_code` prefix (5 digits = 4-digit code + check digit) or `edinet_code`, and pause between requests.
+- Financial data: `download(doc_id, DocumentKind::Csv)` when `csv_flag`, or `DocumentKind::Main` for XBRL when `xbrl_flag`. The crate returns ZIP bytes and does not unzip.
 
 EDINET returns errors with HTTP 200 and a JSON body; the crate turns them into `EdinetError::Api`. No throttling or retries: the terms of use forbid many requests in a short time.
 

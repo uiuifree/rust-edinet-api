@@ -6,12 +6,29 @@
 [![MSRV](https://img.shields.io/badge/MSRV-1.88-blue?style=flat-square)](https://github.com/uiuifree/rust-edinet-api/blob/main/Cargo.toml)
 [![License](https://img.shields.io/crates/l/edinet-api?style=flat-square)](https://github.com/uiuifree/rust-edinet-api/blob/main/LICENSE)
 
-Unofficial async Rust client for the [EDINET API](https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/WZEK0110.html)
-v2, the API of EDINET, the electronic disclosure system of Japan's Financial Services Agency (FSA).
+Unofficial async Rust client and command line tool for the
+[EDINET API](https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/WZEK0110.html) v2, the
+API of EDINET, the electronic disclosure system of Japan's Financial Services Agency (FSA).
 It lists the documents filed on a given date and downloads them as ZIP (XBRL, CSV, attachments,
 English files) or PDF.
 
+- Annual securities reports (有価証券報告書), semi-annual and quarterly reports, extraordinary
+  reports (臨時報告書), large shareholding reports (大量保有報告書), tender offers and every other
+  document type, with typed codes and their official Japanese names
+- Filter by document type, EDINET code or securities code, and pick up only new filings since the
+  last call
+- Financial statements as XBRL or as the CSV that EDINET converts from XBRL
+- `edinet` CLI with JSON output, for scripts and AI agents
+
 This crate is not made or endorsed by the FSA.
+
+## 日本語での概要
+
+金融庁 EDINET の API（Version 2）を Rust から使うための非公式クライアントと CLI です。日付を指定して
+提出書類一覧を取得し、有価証券報告書などの書類を XBRL・CSV・PDF でダウンロードできます。書類種別コード
+（`120` 有価証券報告書など）は型で扱え、`name()` で正式名称を返します。API キーは同梱していないので、
+EDINET で発行したものを渡してください。利用時は EDINET の利用規約を守り、短時間に大量のリクエストを
+送らないでください。
 
 ## Setup
 
@@ -67,6 +84,34 @@ and documents past their inspection period keep only `seq_number` and `doc_id`.
 Codes are typed: `DocTypeCode`, `OrdinanceCode` and the status enums in the `code` module, with
 `name()` returning the official Japanese name. Unknown codes are kept in `Other(String)`. Dates are
 `Date` (`YYYY-MM-DD`) and `DateTime` (`YYYY-MM-DD hh:mm`, JST).
+
+### Finding a company's filings
+
+The API has no search by company, so read the list for each date and filter. This collects one
+company's annual securities reports for June 2026, pausing between requests:
+
+```rust,no_run
+use edinet_api::code::DocTypeCode;
+use edinet_api::{Date, EdinetApi};
+use std::time::Duration;
+
+# async fn run(api: EdinetApi) -> Result<(), edinet_api::EdinetError> {
+let mut reports = Vec::new();
+for day in 1..=30 {
+    let list = api.documents(Date::new(2026, 6, day)?).await?;
+    reports.extend(list.results.into_iter().filter(|doc| {
+        doc.sec_code.as_deref().is_some_and(|code| code.starts_with("7203"))
+            && doc.doc_type_code == Some(DocTypeCode::AnnualSecuritiesReport)
+    }));
+    tokio::time::sleep(Duration::from_secs(1)).await;
+}
+# Ok(())
+# }
+```
+
+Securities codes in the list have 5 digits (the 4-digit code plus a check digit), so match by
+prefix. The EDINET code list, which maps EDINET codes to companies, is a separate download linked
+from chapter 4 of the specification.
 
 ### Downloads
 

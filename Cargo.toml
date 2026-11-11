@@ -5,13 +5,13 @@ edition = "2024"
 rust-version = "1.88"
 
 authors = ["uiuifree"]
-description = "Unofficial async Rust client for the EDINET API v2 (Japan FSA disclosure system): daily filing lists and document downloads (XBRL, PDF, CSV)"
+description = "Unofficial async Rust client and CLI for the EDINET API v2 (Japan FSA): filing lists and downloads of annual securities reports (有価証券報告書) and other disclosures as XBRL, CSV or PDF"
 license = "MIT"
 readme = "README.md"
 
 # crates.io allows at most 5 keywords and 5 categories.
 keywords = ["edinet", "xbrl", "finance", "japan", "disclosure"]
-categories = ["api-bindings", "finance", "asynchronous"]
+categories = ["api-bindings", "finance", "asynchronous", "command-line-utilities"]
 
 homepage = "https://github.com/uiuifree/rust-edinet-api"
 repository = "https://github.com/uiuifree/rust-edinet-api"
