@@ -3,7 +3,7 @@
 #[non_exhaustive]
 pub enum DocumentKind {
     /// `1`: main document and audit report, with XBRL when
-    /// [`xbrl_flag`](crate::Document::xbrl_flag) is set. ZIP.
+    /// [`xbrl_flag`](crate::Document::xbrl_flag) is `Some(true)`. ZIP.
     Main,
     /// `2`: the PDF shown in EDINET search results. PDF.
     Pdf,

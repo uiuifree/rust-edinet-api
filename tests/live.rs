@@ -23,13 +23,13 @@ fn date() -> Date {
 #[ignore]
 async fn metadata_and_list_agree() {
     let api = api();
-    let metadata = api.metadata(date()).await.unwrap();
+    let metadata = api.metadata(date()).await.unwrap().metadata;
     assert!(metadata.resultset.count > 0);
     assert_eq!(metadata.parameter.date, date());
 
     let list = api.documents(date()).await.unwrap();
     assert_eq!(list.results.len() as u32, list.metadata.resultset.count);
-    assert!(list.results.iter().any(|doc| doc.xbrl_flag));
+    assert!(list.results.iter().any(|doc| doc.xbrl_flag == Some(true)));
 }
 
 #[tokio::test]
@@ -40,7 +40,7 @@ async fn downloads_pdf_and_zip() {
     let doc = list
         .results
         .iter()
-        .find(|doc| doc.pdf_flag && doc.xbrl_flag)
+        .find(|doc| doc.pdf_flag == Some(true) && doc.xbrl_flag == Some(true))
         .expect("a document with PDF and XBRL");
 
     let pdf = api.download(&doc.doc_id, DocumentKind::Pdf).await.unwrap();

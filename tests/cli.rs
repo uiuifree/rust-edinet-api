@@ -67,7 +67,7 @@ fn metadata() {
     assert_eq!(out["ok"], true);
     assert_eq!(out["command"], "metadata");
     assert_eq!(out["params"]["date"], "2023-04-03");
-    assert_eq!(out["data"]["resultset"]["count"], 1);
+    assert_eq!(out["data"]["metadata"]["resultset"]["count"], 1);
 
     // Without rows, --ndjson prints the whole result on one line
     let output = edinet(Some(&server), &dir, &["metadata", "2023-04-03", "--ndjson"]);

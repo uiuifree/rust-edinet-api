@@ -38,7 +38,7 @@ The key is not bundled with this crate; pass your own.
 
 ```toml
 [dependencies]
-edinet-api = "0.1"
+edinet-api = "0.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
@@ -56,7 +56,7 @@ async fn main() -> Result<(), edinet_api::EdinetError> {
     println!("{} entries", list.metadata.resultset.count);
 
     for doc in &list.results {
-        if doc.doc_type_code == Some(DocTypeCode::AnnualSecuritiesReport) && doc.xbrl_flag {
+        if doc.doc_type_code == Some(DocTypeCode::AnnualSecuritiesReport) && doc.xbrl_flag == Some(true) {
             println!("{} {:?}", doc.doc_id, doc.filer_name);
             let file = api.download(&doc.doc_id, DocumentKind::Main).await?;
             std::fs::write(format!("{}.{}", doc.doc_id, file.format.extension()), &file.bytes).unwrap();
@@ -80,6 +80,10 @@ The list also holds entries that record a withdrawal, a correction by a Local Fi
 officer, or a change in disclosure. They reuse the `doc_id` of the affected document and are told
 apart by `withdrawal_status`, `doc_info_edit_status` and `disclosure_status`. Withdrawn documents
 and documents past their inspection period keep only `seq_number` and `doc_id`.
+
+Fields EDINET adds after this release are not dropped: every response struct keeps them in
+`extra` (a JSON map), and serializing a struct gives them back. The `*_flag` fields are
+`Option<bool>`, so `null` from EDINET stays `None` instead of turning into "no file".
 
 Codes are typed: `DocTypeCode`, `OrdinanceCode` and the status enums in the `code` module, with
 `name()` returning the official Japanese name. Unknown codes are kept in `Other(String)`. Dates are

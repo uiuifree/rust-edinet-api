@@ -8,11 +8,11 @@ Use it for: listing Japanese corporate disclosures by date, getting XBRL or CSV 
 
 Public items:
 
-- `EdinetApi::{with_api_key, with_client, with_timeout, with_base_url}`; `metadata(Date) -> Result<Metadata, EdinetError>`; `documents(Date) -> Result<DocumentList, EdinetError>`; `download(&str, DocumentKind) -> Result<Download, EdinetError>`
+- `EdinetApi::{with_api_key, with_client, with_timeout, with_base_url}`; `metadata(Date) -> Result<MetadataResponse { metadata, extra }, EdinetError>`; `documents(Date) -> Result<DocumentList, EdinetError>`; `download(&str, DocumentKind) -> Result<Download, EdinetError>`
 - `Date` (`YYYY-MM-DD`, `FromStr`, `Date::new(y, m, d)`), `DateTime` (`YYYY-MM-DD hh:mm`, JST)
 - `Metadata { title, parameter { date, list_type }, resultset { count }, process_date_time, status, message }`
 - `DocumentList { metadata, results: Vec<Document> }`
-- `Document { seq_number, doc_id, edinet_code, sec_code, jcn, filer_name, fund_code, ordinance_code, form_code, doc_type_code, period_start, period_end, submit_date_time, doc_description, issuer_edinet_code, subject_edinet_code, subsidiary_edinet_code, current_report_reason, parent_doc_id, ope_date_time, withdrawal_status, doc_info_edit_status, disclosure_status, xbrl_flag, pdf_flag, attach_doc_flag, english_doc_flag, csv_flag, legal_status }` with `subsidiary_edinet_codes()` and `current_report_reasons()`; flags are `bool`
+- `Document { seq_number, doc_id, edinet_code, sec_code, jcn, filer_name, fund_code, ordinance_code, form_code, doc_type_code, period_start, period_end, submit_date_time, doc_description, issuer_edinet_code, subject_edinet_code, subsidiary_edinet_code, current_report_reason, parent_doc_id, ope_date_time, withdrawal_status, doc_info_edit_status, disclosure_status, xbrl_flag, pdf_flag, attach_doc_flag, english_doc_flag, csv_flag, legal_status }` with `subsidiary_edinet_codes()` and `current_report_reasons()`; flags are `Option<bool>` (`None` when EDINET sends null); every struct has `extra: Map<String, Value>` holding fields the crate does not know yet
 - `code` module: `DocTypeCode` (e.g. `AnnualSecuritiesReport` = `120`, `ExtraordinaryReport` = `180`), `OrdinanceCode`, `WithdrawalStatus`, `DocInfoEditStatus`, `DisclosureStatus`, `LegalStatus`; each has `code()`, `ALL`, `Other(String)`; the first two have `name()` (official Japanese name)
 - `DocumentKind::{Main, Pdf, Attachment, English, Csv}` (type 1 to 5); `Download { format: FileFormat::{Zip, Pdf}, bytes: Vec<u8> }`
 - `EdinetError::{Connection, JsonParse, Api { status, message }, HttpStatus(u16, String), UnexpectedContentType(String), InvalidArgument(String)}` with `status()`, `is_not_found()`, `is_unauthorized()`, `is_rate_limited()`, `is_timeout()`
@@ -21,9 +21,9 @@ CLI (feature `cli`, `cargo install edinet-api --features cli`): `edinet metadata
 
 Common tasks:
 
-- New filings today: call `metadata(date)` to see whether `resultset.count` grew, then `documents(date)` and keep entries with `seq_number` above the last one seen (CLI: `edinet list DATE --after-seq N`, next N is `meta.last_seq`).
+- New filings today: call `metadata(date)` to see whether `metadata.resultset.count` grew, then `documents(date)` and keep entries with `seq_number` above the last one seen (CLI: `edinet list DATE --after-seq N`, next N is `meta.last_seq`).
 - One company's reports: there is no company search. Loop over dates with `documents(date)`, filter by `sec_code` prefix (5 digits = 4-digit code + check digit) or `edinet_code`, and pause between requests.
-- Financial data: `download(doc_id, DocumentKind::Csv)` when `csv_flag`, or `DocumentKind::Main` for XBRL when `xbrl_flag`. The crate returns ZIP bytes and does not unzip.
+- Financial data: `download(doc_id, DocumentKind::Csv)` when `csv_flag == Some(true)`, or `DocumentKind::Main` for XBRL when `xbrl_flag == Some(true)`. The crate returns ZIP bytes and does not unzip.
 
 EDINET returns errors with HTTP 200 and a JSON body; the crate turns them into `EdinetError::Api`. No throttling or retries: the terms of use forbid many requests in a short time.
 

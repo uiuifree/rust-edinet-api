@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    if let Some(doc) = list.results.iter().find(|doc| doc.pdf_flag) {
+    if let Some(doc) = list.results.iter().find(|doc| doc.pdf_flag == Some(true)) {
         let file = api.download(&doc.doc_id, DocumentKind::Pdf).await?;
         let path = format!("{}.{}", doc.doc_id, file.format.extension());
         std::fs::write(&path, &file.bytes)?;

@@ -37,7 +37,9 @@ async fn metadata_sends_type_1() {
         })
         .await;
 
-    let metadata = api(&server).metadata(date("2023-04-03")).await.unwrap();
+    let response = api(&server).metadata(date("2023-04-03")).await.unwrap();
+    assert!(response.extra.is_empty());
+    let metadata = response.metadata;
     mock.assert_async().await;
     assert_eq!(metadata.resultset.count, 1);
     assert_eq!(metadata.parameter.date, date("2023-04-03"));
@@ -86,8 +88,16 @@ async fn documents_parses_entries() {
     assert_eq!(report.period_end, Some(date("2023-03-31")));
     assert_eq!(report.submit_date_time.unwrap().hour(), 12);
     assert_eq!(report.legal_status, LegalStatus::UnderInspection);
-    assert!(report.xbrl_flag && report.pdf_flag && report.attach_doc_flag && report.csv_flag);
-    assert!(!report.english_doc_flag);
+    for flag in [
+        report.xbrl_flag,
+        report.pdf_flag,
+        report.attach_doc_flag,
+        report.csv_flag,
+    ] {
+        assert_eq!(flag, Some(true));
+    }
+    assert_eq!(report.english_doc_flag, Some(false));
+    assert!(report.extra.is_empty());
 
     let withdrawn = &list.results[1];
     assert_eq!(withdrawn.withdrawal_status, WithdrawalStatus::Withdrawn);

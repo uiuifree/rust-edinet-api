@@ -6,11 +6,11 @@ use crate::code::{
 use crate::{Date, DateTime};
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::{Map, Value};
 
 /// Summary of the document list for one date.
 ///
-/// Returned by [`EdinetApi::metadata`](crate::EdinetApi::metadata) and part
-/// of every [`DocumentList`].
+/// Part of [`MetadataResponse`] and [`DocumentList`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -27,6 +27,22 @@ pub struct Metadata {
     pub status: String,
     /// `OK` on success.
     pub message: String,
+    /// Fields this crate does not know yet, kept as received so nothing is
+    /// lost when EDINET adds one. Serialized back next to the known fields.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Response of [`EdinetApi::metadata`](crate::EdinetApi::metadata).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MetadataResponse {
+    /// Summary of the list.
+    pub metadata: Metadata,
+    /// Fields this crate does not know yet, kept as received so nothing is
+    /// lost when EDINET adds one. Serialized back next to the known fields.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
 }
 
 /// Parameters echoed in [`Metadata`].
@@ -38,6 +54,10 @@ pub struct Parameter {
     /// `1` for metadata only, `2` for metadata and the list.
     #[serde(rename = "type")]
     pub list_type: String,
+    /// Fields this crate does not know yet, kept as received so nothing is
+    /// lost when EDINET adds one. Serialized back next to the known fields.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
 }
 
 /// Size of the list in [`Metadata`].
@@ -46,6 +66,10 @@ pub struct Parameter {
 pub struct ResultSet {
     /// Number of entries for the date.
     pub count: u32,
+    /// Fields this crate does not know yet, kept as received so nothing is
+    /// lost when EDINET adds one. Serialized back next to the known fields.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
 }
 
 /// Document list for one date, returned by
@@ -57,6 +81,10 @@ pub struct DocumentList {
     pub metadata: Metadata,
     /// Entries, ordered by [`seq_number`](Document::seq_number).
     pub results: Vec<Document>,
+    /// Fields this crate does not know yet, kept as received so nothing is
+    /// lost when EDINET adds one. Serialized back next to the known fields.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
 }
 
 /// One entry of the document list.
@@ -69,7 +97,11 @@ pub struct DocumentList {
 ///
 /// When a document is withdrawn or its inspection period ends, every field
 /// except `seq_number` and `doc_id` (and `parent_doc_id` for withdrawals)
-/// becomes `None`, and the flags become `false`.
+/// becomes `None`, and the flags become `Some(false)`.
+///
+/// Flags are `Some(true)` for `"1"`, `Some(false)` for `"0"` and `None` when
+/// EDINET sends `null` or leaves the field out, so a missing value is not
+/// mistaken for "no file".
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -129,23 +161,27 @@ pub struct Document {
     /// Disclosure status.
     pub disclosure_status: DisclosureStatus,
     /// Has XBRL ([`DocumentKind::Main`](crate::DocumentKind::Main) then contains it).
-    #[serde(with = "flag")]
-    pub xbrl_flag: bool,
+    #[serde(with = "flag", default)]
+    pub xbrl_flag: Option<bool>,
     /// Has a PDF ([`DocumentKind::Pdf`](crate::DocumentKind::Pdf)).
-    #[serde(with = "flag")]
-    pub pdf_flag: bool,
+    #[serde(with = "flag", default)]
+    pub pdf_flag: Option<bool>,
     /// Has alternative documents or attachments
     /// ([`DocumentKind::Attachment`](crate::DocumentKind::Attachment)).
-    #[serde(with = "flag")]
-    pub attach_doc_flag: bool,
+    #[serde(with = "flag", default)]
+    pub attach_doc_flag: Option<bool>,
     /// Has English files ([`DocumentKind::English`](crate::DocumentKind::English)).
-    #[serde(with = "flag")]
-    pub english_doc_flag: bool,
+    #[serde(with = "flag", default)]
+    pub english_doc_flag: Option<bool>,
     /// Has CSV converted from XBRL ([`DocumentKind::Csv`](crate::DocumentKind::Csv)).
-    #[serde(with = "flag")]
-    pub csv_flag: bool,
+    #[serde(with = "flag", default)]
+    pub csv_flag: Option<bool>,
     /// Public inspection status.
     pub legal_status: LegalStatus,
+    /// Fields this crate does not know yet, kept as received so nothing is
+    /// lost when EDINET adds one. Serialized back next to the known fields.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
 }
 
 impl Document {
@@ -170,18 +206,28 @@ fn split(value: &Option<String>) -> Vec<&str> {
         .collect()
 }
 
-/// `"1"` / `"0"` flags as `bool`.
+/// `"1"` / `"0"` / `null` flags as `Option<bool>`.
 mod flag {
     use super::*;
 
-    pub fn serialize<S: Serializer>(value: &bool, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(if *value { "1" } else { "0" })
+    pub fn serialize<S: Serializer>(
+        value: &Option<bool>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        match value {
+            Some(true) => serializer.serialize_str("1"),
+            Some(false) => serializer.serialize_str("0"),
+            None => serializer.serialize_none(),
+        }
     }
 
-    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<bool, D::Error> {
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<bool>, D::Error> {
         match Option::<String>::deserialize(deserializer)?.as_deref() {
-            Some("1") => Ok(true),
-            Some("0") | None => Ok(false),
+            Some("1") => Ok(Some(true)),
+            Some("0") => Ok(Some(false)),
+            None => Ok(None),
             Some(other) => Err(D::Error::custom(format!(
                 "expected \"0\" or \"1\": {other:?}"
             ))),
@@ -215,10 +261,15 @@ mod tests {
     #[test]
     fn flags() {
         let doc: Document = serde_json::from_value(entry(json!({"xbrlFlag": "1"}))).unwrap();
-        assert!(doc.xbrl_flag);
-        assert!(!doc.pdf_flag);
+        assert_eq!(doc.xbrl_flag, Some(true));
+        assert_eq!(doc.pdf_flag, Some(false));
         let doc: Document = serde_json::from_value(entry(json!({"csvFlag": null}))).unwrap();
-        assert!(!doc.csv_flag);
+        assert_eq!(doc.csv_flag, None);
+        assert_eq!(serde_json::to_value(&doc).unwrap()["csvFlag"], Value::Null);
+        let mut value = entry(json!({}));
+        value.as_object_mut().unwrap().remove("englishDocFlag");
+        let doc: Document = serde_json::from_value(value).unwrap();
+        assert_eq!(doc.english_doc_flag, None);
         assert!(serde_json::from_value::<Document>(entry(json!({"pdfFlag": 1}))).is_err());
         let error = serde_json::from_value::<Document>(entry(json!({"pdfFlag": "Y"})));
         assert!(
@@ -234,6 +285,31 @@ mod tests {
         .unwrap();
         assert_eq!(back["xbrlFlag"], "1");
         assert_eq!(back["pdfFlag"], "0");
+    }
+
+    #[test]
+    fn keeps_unknown_fields() {
+        let value = entry(json!({"newField": "x", "newFlag": "1"}));
+        let doc: Document = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(doc.extra.len(), 2);
+        assert_eq!(doc.extra["newField"], "x");
+        assert_eq!(serde_json::to_value(&doc).unwrap(), value);
+
+        let list = json!({
+            "metadata": {
+                "title": "t", "parameter": {"date": "2023-04-03", "type": "2", "p": 1},
+                "resultset": {"count": 0, "r": 2}, "processDateTime": "2023-04-03 13:01",
+                "status": "200", "message": "OK", "m": 3
+            },
+            "results": [],
+            "top": 4
+        });
+        let parsed: DocumentList = serde_json::from_value(list.clone()).unwrap();
+        assert_eq!(parsed.extra["top"], 4);
+        assert_eq!(parsed.metadata.extra["m"], 3);
+        assert_eq!(parsed.metadata.parameter.extra["p"], 1);
+        assert_eq!(parsed.metadata.resultset.extra["r"], 2);
+        assert_eq!(serde_json::to_value(&parsed).unwrap(), list);
     }
 
     #[test]

@@ -10,7 +10,7 @@ pub mod response;
 pub use date::{Date, DateTime};
 pub use download::{DocumentKind, Download, FileFormat};
 pub use error::EdinetError;
-pub use response::{Document, DocumentList, Metadata};
+pub use response::{Document, DocumentList, Metadata, MetadataResponse};
 
 /// Re-export of `reqwest`, for building a client to pass to
 /// [`EdinetApi::with_client`] without adding the dependency yourself.
@@ -18,7 +18,6 @@ pub use reqwest;
 
 use reqwest::header::CONTENT_TYPE;
 use reqwest::{Response, Url};
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use std::fmt::{Debug, Formatter};
 use std::time::Duration;
@@ -42,7 +41,7 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 /// let list = api.documents("2026-06-30".parse()?).await?;
 ///
 /// for doc in &list.results {
-///     if doc.doc_type_code == Some(DocTypeCode::AnnualSecuritiesReport) && doc.xbrl_flag {
+///     if doc.doc_type_code == Some(DocTypeCode::AnnualSecuritiesReport) && doc.xbrl_flag == Some(true) {
 ///         let zip = api.download(&doc.doc_id, DocumentKind::Main).await?;
 ///         std::fs::write(format!("{}.zip", doc.doc_id), &zip.bytes).unwrap();
 ///     }
@@ -66,11 +65,6 @@ impl Debug for EdinetApi {
             .field("timeout", &self.timeout)
             .finish_non_exhaustive()
     }
-}
-
-#[derive(Deserialize)]
-struct MetadataOnly {
-    metadata: Metadata,
 }
 
 impl EdinetApi {
@@ -107,7 +101,7 @@ impl EdinetApi {
 
     /// Metadata of the document list for a date, without the list itself
     /// (`GET documents.json?type=1`). Use it to check whether
-    /// [`resultset.count`](response::ResultSet::count) went up before
+    /// `metadata.resultset.count` went up before
     /// fetching the full list.
     ///
     /// The date can be any day, including weekends, up to 10 years back.
@@ -120,9 +114,8 @@ impl EdinetApi {
     /// * [`EdinetError::Connection`] on a network failure or timeout,
     ///   [`EdinetError::HttpStatus`] when EDINET answers with an error page,
     ///   or [`EdinetError::JsonParse`] when the body is not the expected JSON.
-    pub async fn metadata(&self, date: Date) -> Result<Metadata, EdinetError> {
-        let response: MetadataOnly = self.list(date, "1").await?;
-        Ok(response.metadata)
+    pub async fn metadata(&self, date: Date) -> Result<MetadataResponse, EdinetError> {
+        self.list(date, "1").await
     }
 
     /// Document list for a date (`GET documents.json?type=2`).
