@@ -1,0 +1,31 @@
+# edinet-api
+
+> Unofficial async Rust client for the EDINET API v2 of Japan's Financial Services Agency. Lists the documents filed on a date (annual securities reports, extraordinary reports, large shareholding reports and more) and downloads them as ZIP (XBRL, CSV, attachments, English files) or PDF. Requires an EDINET API key.
+
+Crate name: `edinet-api` (import as `edinet_api`). MSRV 1.88, Tokio, reqwest.
+
+Public items:
+
+- `EdinetApi::{with_api_key, with_client, with_timeout, with_base_url}`; `metadata(Date) -> Result<Metadata, EdinetError>`; `documents(Date) -> Result<DocumentList, EdinetError>`; `download(&str, DocumentKind) -> Result<Download, EdinetError>`
+- `Date` (`YYYY-MM-DD`, `FromStr`, `Date::new(y, m, d)`), `DateTime` (`YYYY-MM-DD hh:mm`, JST)
+- `Metadata { title, parameter { date, list_type }, resultset { count }, process_date_time, status, message }`
+- `DocumentList { metadata, results: Vec<Document> }`
+- `Document { seq_number, doc_id, edinet_code, sec_code, jcn, filer_name, fund_code, ordinance_code, form_code, doc_type_code, period_start, period_end, submit_date_time, doc_description, issuer_edinet_code, subject_edinet_code, subsidiary_edinet_code, current_report_reason, parent_doc_id, ope_date_time, withdrawal_status, doc_info_edit_status, disclosure_status, xbrl_flag, pdf_flag, attach_doc_flag, english_doc_flag, csv_flag, legal_status }` with `subsidiary_edinet_codes()` and `current_report_reasons()`; flags are `bool`
+- `code` module: `DocTypeCode` (e.g. `AnnualSecuritiesReport` = `120`, `ExtraordinaryReport` = `180`), `OrdinanceCode`, `WithdrawalStatus`, `DocInfoEditStatus`, `DisclosureStatus`, `LegalStatus`; each has `code()`, `ALL`, `Other(String)`; the first two have `name()` (official Japanese name)
+- `DocumentKind::{Main, Pdf, Attachment, English, Csv}` (type 1 to 5); `Download { format: FileFormat::{Zip, Pdf}, bytes: Vec<u8> }`
+- `EdinetError::{Connection, JsonParse, Api { status, message }, HttpStatus(u16, String), UnexpectedContentType(String), InvalidArgument(String)}` with `status()`, `is_not_found()`, `is_unauthorized()`, `is_rate_limited()`, `is_timeout()`
+
+EDINET returns errors with HTTP 200 and a JSON body; the crate turns them into `EdinetError::Api`. No throttling or retries: the terms of use forbid many requests in a short time.
+
+## Documentation
+
+- [README](https://github.com/uiuifree/rust-edinet-api/blob/main/README.md): usage, downloads, errors, terms of use
+- [API reference on docs.rs](https://docs.rs/edinet-api)
+- [CHANGELOG](https://github.com/uiuifree/rust-edinet-api/blob/main/CHANGELOG.md)
+- [examples/list.rs](https://github.com/uiuifree/rust-edinet-api/blob/main/examples/list.rs): list a date and save the first PDF
+
+## Upstream
+
+- [EDINET API specification (PDF)](https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/download/ESE140206.pdf)
+- [EDINET API documents](https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/WZEK0110.html)
+- [EDINET terms of use](https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/WZEK0030.html)

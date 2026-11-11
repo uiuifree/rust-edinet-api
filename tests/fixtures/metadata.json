@@ -1,0 +1,10 @@
+{
+    "metadata": {
+        "title": "提出された書類を把握するためのAPI",
+        "parameter": {"date": "2023-04-03", "type": "1"},
+        "resultset": {"count": 1},
+        "processDateTime": "2023-04-03 13:01",
+        "status": "200",
+        "message": "OK"
+    }
+}

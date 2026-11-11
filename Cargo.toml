@@ -1,0 +1,29 @@
+[package]
+name = "edinet-api"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+authors = ["uiuifree"]
+description = "Unofficial async Rust client for the EDINET API v2 (Japan FSA disclosure system): daily filing lists and document downloads (XBRL, PDF, CSV)"
+license = "MIT"
+readme = "README.md"
+
+# crates.io allows at most 5 keywords and 5 categories.
+keywords = ["edinet", "xbrl", "finance", "japan", "disclosure"]
+categories = ["api-bindings", "finance", "asynchronous"]
+
+homepage = "https://github.com/uiuifree/rust-edinet-api"
+repository = "https://github.com/uiuifree/rust-edinet-api"
+documentation = "https://docs.rs/edinet-api"
+
+exclude = [".github/", ".idea/", ".claude/"]
+
+[dependencies]
+reqwest = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1.48", features = ["full"] }
+httpmock = "0.7"
