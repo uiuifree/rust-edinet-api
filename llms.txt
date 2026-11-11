@@ -15,6 +15,8 @@ Public items:
 - `DocumentKind::{Main, Pdf, Attachment, English, Csv}` (type 1 to 5); `Download { format: FileFormat::{Zip, Pdf}, bytes: Vec<u8> }`
 - `EdinetError::{Connection, JsonParse, Api { status, message }, HttpStatus(u16, String), UnexpectedContentType(String), InvalidArgument(String)}` with `status()`, `is_not_found()`, `is_unauthorized()`, `is_rate_limited()`, `is_timeout()`
 
+CLI (feature `cli`, `cargo install edinet-api --features cli`): `edinet metadata DATE`, `edinet list DATE [--doc-type CODE]... [--edinet-code CODE]... [--sec-code CODE]... [--after-seq N] [--ndjson]`, `edinet download DOC_ID [--kind main|pdf|attachment|english|csv] [-o PATH] [--force]`, `edinet codes`. Key from `EDINET_API_KEY`. JSON on stdout (`{ok, command, params, rows|data, meta}`), errors as JSON on stderr; exit codes 2 usage, 3 auth, 4 api, 5 rate limit, 6 not found, 1 other.
+
 EDINET returns errors with HTTP 200 and a JSON body; the crate turns them into `EdinetError::Api`. No throttling or retries: the terms of use forbid many requests in a short time.
 
 ## Documentation

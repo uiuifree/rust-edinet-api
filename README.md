@@ -111,6 +111,38 @@ match api.documents("2026-06-30".parse().unwrap()).await {
 The API key is sent in the URL, as the specification requires. The crate removes the URL from
 connection errors and hides the key in `Debug` output.
 
+## Command line tool
+
+The `cli` feature adds an `edinet` command. It reads the key from `EDINET_API_KEY` (or
+`--api-key`) and prints JSON to stdout.
+
+```bash
+cargo install edinet-api --features cli
+
+edinet metadata 2026-06-30
+edinet list 2026-06-30 --doc-type 120 --doc-type 140
+edinet list 2026-06-30 --sec-code 7203 --ndjson
+edinet download S100ABCD --kind pdf -o report.pdf
+edinet codes
+```
+
+`list` filters by `--doc-type`, `--edinet-code`, `--sec-code` (prefix match, so a 4-digit code
+works) and `--after-seq N`, which keeps only entries added after the last run; `meta.last_seq`
+holds the number to pass next time. `--ndjson` prints one document per line. `download` does not
+overwrite an existing file unless `--force` is given.
+
+Errors are printed to stderr as `{"ok": false, "error": {"kind", "message", "status"}}`.
+
+| Exit code | Meaning |
+|-----------|---------|
+| `0` | success |
+| `1` | other failure, such as a file that cannot be written |
+| `2` | invalid arguments |
+| `3` | missing or invalid API key |
+| `4` | API or network error |
+| `5` | rate limited |
+| `6` | not found |
+
 ## Terms of use
 
 Follow the [EDINET terms of use](https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/WZEK0030.html).
@@ -135,6 +167,7 @@ The code names and field descriptions in this crate are based on the EDINET API 
 cargo test
 EDINET_API_KEY=... cargo test --test live -- --ignored --test-threads 1
 EDINET_API_KEY=... cargo run --example list -- 2026-06-30
+cargo run --features cli -- list 2026-06-30
 ```
 
 See [CONTRIBUTING.md](https://github.com/uiuifree/rust-edinet-api/blob/main/CONTRIBUTING.md).

@@ -13,4 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EdinetApi::download` for the document API, returning ZIP or PDF bytes.
 - Typed codes (`DocTypeCode`, `OrdinanceCode`, status enums) with an `Other` fallback, and
   `Date` / `DateTime` types.
+- `edinet` command line tool behind the `cli` feature: `metadata`, `list` with filters,
+  `download` and `codes`, JSON output and exit codes by error kind.
 - Error detection for EDINET's status 200 error bodies and the gateway's `StatusCode` bodies.

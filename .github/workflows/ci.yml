@@ -26,7 +26,7 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
       - name: Test
-        run: cargo test --all-targets
+        run: cargo test --all-targets --all-features
       - name: Doc tests
         run: cargo test --doc
       - name: Rustdoc
@@ -47,7 +47,7 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
       - uses: Swatinem/rust-cache@v2
       - name: Coverage
-        run: cargo llvm-cov --all-targets --fail-under-lines 100
+        run: cargo llvm-cov --all-targets --all-features --fail-under-lines 100
 
   # Cargo.toml の rust-version = "1.88" を保証する
   msrv:
@@ -59,7 +59,7 @@ jobs:
           toolchain: "1.88"
       - uses: Swatinem/rust-cache@v2
       - name: Check on MSRV
-        run: cargo check
+        run: cargo check --all-features
 
   # 実際の API を叩くテスト。シークレットがない場合（フォークからの PR など）はスキップする
   live:

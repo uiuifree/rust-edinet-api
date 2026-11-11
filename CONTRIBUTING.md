@@ -8,7 +8,7 @@ Run the same checks as CI before opening a pull request:
 ```bash
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets
+cargo test --all-targets --all-features
 cargo test --doc
 ```
 
@@ -21,7 +21,7 @@ All lines are covered by tests. Check with
 [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov):
 
 ```bash
-cargo llvm-cov --all-targets --summary-only
+cargo llvm-cov --all-targets --all-features --summary-only
 ```
 
 ## Live tests
